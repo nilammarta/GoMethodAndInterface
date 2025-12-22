@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"time"
 )
 
 type Vertex struct {
@@ -277,8 +278,168 @@ func main() {
 
 	interf = "hello"
 	describe4(interf)
+
+	/*
+			PENEGASAN TIPE
+			penegasan tipe menyediakan akses ke isi interface di balik nilai konkritnya.
+
+		CONTOH: t := i.(T)
+		Perintah di atas menegaskan bahwa isi interface i menyimpan tipe konkrit T
+		dan memberikan nilai T ke variabel t. Dan apabila interface tidak mengandung tipe T, akan memicu panic.
+
+		Untuk memeriksa apakah sebuah isi interface benar mengandung tipe tertentu, dapat menggunakan
+		t, ok := i.(T)
+		dan akan mereturn nilai boolean.
+	*/
+	var interf2 interface{} = "hello"
+
+	s := interf2.(string)
+	fmt.Println(s)
+
+	s, ok := interf2.(string)
+	fmt.Println(s, ok)
+
+	r, ok := interf2.(float64)
+	fmt.Println(r, ok)
+
+	//r = interf2.(float64) // panic
+	//fmt.Println(r)
+
+	/*
+			SWITCH UNTUK PENEGASAN TIPE
+			tipe switch adalah bentukan yang membolehkan beberapa penegasan tipe secara serial.
+
+		Tipe switch sama seperti perintah switch biasa, tapi dengan nilai case mengacu pada tipe (bukan nilai),
+		dan nilai case tersebut dibandingkan dengan tipe yang dikandung oleh isi interface yang diberikan.
+	*/
+	do(21)
+	do("hello")
+	do(true)
+
+	/*
+		STRINGER
+		stringer adalah Interface yang ada dimanapun, dan didefinisikan oleh paket fmt.
+
+		! STRINGER BERUPA METHOD STRING DIBAWAH !
+
+		Sebuah Stringer adalah suatu tipe yang mendeskripsikan dirinya sendiri sebagai string.
+		Paket fmt (dan banyak lainnya) menggunakan interface ini untuk mencetak nilai.
+	*/
+	a := Person{"Arthur Dent", 42}
+	z := Person{"Zaphod Beeblebrox", 9001}
+	fmt.Println(a, z)
+
+	/*
+		LATIHAN STRINGER
+	*/
+	hosts := map[string]IPAddr{
+		"loopback":  {127, 0, 0, 1},
+		"googleDNS": {8, 8, 8, 8},
+	}
+	for name, ip := range hosts {
+		fmt.Printf("%v: %v\n", name, ip)
+	}
+
+	/*
+			ERROR
+			Program Go mengekspresikan keadaan error dengan nilai error.
+
+			Tipe error adalah interface buatan mirip dengan fmt.Stringer.
+			Seperti dengan fmt.Stringer, paket fmt mencari interface error saat mencetak nilai.
+
+			Fungsi terkadang mengembalikan nilai error, dan kode yang memanggilnya harus menangani error
+			dengan memeriksa apakah error bernilai nil.
+
+		i, err := strconv.Atoi("42")
+		if err != nil {
+		    fmt.Printf("couldn't convert number: %v\n", err)
+		    return
+		}
+		fmt.Println("Converted integer:", i)
+
+			error yang nil menandakan sukses; error yang bukan-nil menandakan adanya kesalahan.
+	*/
+	if err := run(); err != nil {
+		fmt.Println(err)
+	}
+
+	// LATIHAN ERROR
+	fmt.Println(Sqrt(2))
+	fmt.Println(Sqrt(-2))
 }
 
 func describe4(i interface{}) {
 	fmt.Printf("(%v, %T)\n", i, i)
+}
+
+// SWITCH TIPE
+func do(i interface{}) {
+	switch v := i.(type) {
+	case int:
+		fmt.Printf("Dua kali %v adalah %v\n", v, v*2)
+	case string:
+		fmt.Printf("%q adalah %v bytes panjangnya\n", v, len(v))
+	default:
+		fmt.Printf("Saya tidak kenal dengan tipe %T!\n", v)
+	}
+}
+
+// STRINGER
+type Person struct {
+	Name string
+	Age  int
+}
+
+func (p Person) String() string {
+	return fmt.Sprintf("%v (%v years)", p.Name, p.Age)
+}
+
+// Latihan Stinger
+type IPAddr [4]byte
+
+func (ip IPAddr) String() string {
+	return fmt.Sprintf("%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3])
+}
+
+// ERROR
+type MyError struct {
+	When time.Time
+	What string
+}
+
+func (e *MyError) Error() string {
+	return fmt.Sprintf("at %v, %s",
+		e.When, e.What)
+}
+
+func run() error {
+	return &MyError{
+		time.Now(),
+		"tidak bekerja!",
+	}
+}
+
+// LATIHAN ERROR
+type ErrNegativeSqrt float64
+
+// implementasi error
+func (e ErrNegativeSqrt) Error() string {
+	return fmt.Sprintf("Tidak bisa dipangkatkan (Sqrt) angka negatif : %v", float64(e))
+}
+
+// fungsi Sqrt dengan error
+func Sqrt(x float64) (float64, error) {
+
+	// Jika x negatif → return error
+	if x < 0 {
+		return 0, ErrNegativeSqrt(x)
+	}
+
+	// Newton method
+	z := x
+	for i := 0; i < 10; i++ {
+		z -= (z*z - x) / (2 * z)
+	}
+
+	return z, nil
 }
